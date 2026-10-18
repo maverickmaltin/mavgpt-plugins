@@ -1,0 +1,22 @@
+{
+  "name": "video-editor",
+  "displayName": "Video Editor",
+  "version": "1.0.0",
+  "description": "Edit your videos in Claude: captions, silence cuts, zooms, titles, b-roll and music. Plans every edit as a storyboard first and saves your own editing style so every video comes out the way you like.",
+  "author": {
+    "name": "Maverick Maltin",
+    "url": "https://mavgpt.ai"
+  },
+  "homepage": "https://mavgpt.ai/resources/make-videos-using-claude",
+  "repository": "https://github.com/maverickmaltin/mavgpt-plugins",
+  "license": "MIT",
+  "keywords": [
+    "video editing",
+    "captions",
+    "ffmpeg",
+    "reels",
+    "tiktok",
+    "youtube shorts",
+    "storyboard"
+  ]
+}

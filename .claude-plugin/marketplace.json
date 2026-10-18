@@ -1,0 +1,22 @@
+{
+  "name": "mavgpt",
+  "description": "Free plugins from Maverick Maltin (mavgpt.ai) that make Claude and Codex useful for everyday people.",
+  "owner": {
+    "name": "Maverick Maltin",
+    "url": "https://mavgpt.ai"
+  },
+  "plugins": [
+    {
+      "name": "video-editor",
+      "source": "./plugins/video-editor",
+      "description": "Edit your videos in Claude: captions, silence cuts, zooms, titles, b-roll and music, planned with a storyboard first and saved in your own editing style.",
+      "category": "productivity"
+    },
+    {
+      "name": "ai-file-system",
+      "source": "./plugins/ai-file-system",
+      "description": "Set up one organized folder that Claude and Codex read before every task, built for you through a short interview.",
+      "category": "productivity"
+    }
+  ]
+}

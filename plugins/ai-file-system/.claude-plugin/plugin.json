@@ -1,0 +1,23 @@
+{
+  "name": "ai-file-system",
+  "displayName": "AI File System",
+  "version": "1.0.0",
+  "description": "Set up one organized folder that Claude and Codex read at the start of every task: who you are, how you work, your projects and what's going on now. A guided interview builds it for you, then it keeps itself up to date.",
+  "author": {
+    "name": "Maverick Maltin",
+    "url": "https://mavgpt.ai"
+  },
+  "homepage": "https://mavgpt.ai/resources/ai-file-system-setup-guide-2026",
+  "repository": "https://github.com/maverickmaltin/mavgpt-plugins",
+  "license": "MIT",
+  "keywords": [
+    "file system",
+    "memory",
+    "agents.md",
+    "claude.md",
+    "personal os",
+    "codex",
+    "cowork",
+    "productivity"
+  ]
+}
