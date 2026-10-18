@@ -13,7 +13,7 @@ You don't need to manage the files. At the end of every task the AI saves what i
 ## Handy phrases
 
 - "Remember this: ..." saves a fact or preference where it belongs.
-- "Add a workspace for [AREA]" sets up a new area.
+- "Add a workspace for my new client" sets up a new area.
 - "Tidy my file system" cleans things up (do it once a month).
 - "What's on my plate?" reads CURRENT.md and every workspace and tells you.
 

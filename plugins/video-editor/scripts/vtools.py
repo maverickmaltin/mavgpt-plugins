@@ -137,6 +137,8 @@ def run(cmd, cwd=None, quiet=True):
 
 
 def probe(path, ffprobe=None):
+    if not Path(path).is_file():
+        sys.exit(f"Can't find the video: {path}\nCheck the file name (and that it's in this project folder).")
     if ffprobe is None:
         _, ffprobe, _ = need_ffmpeg()
     p = run([ffprobe, "-v", "error", "-print_format", "json", "-show_format", "-show_streams", str(path)])
@@ -176,7 +178,24 @@ def hms(t):
 
 
 def load_json(path):
-    return json.loads(Path(path).read_text(encoding="utf-8"))
+    p = Path(path)
+    if not p.is_file():
+        sys.exit(f"Can't find {path}. Check the path, or create it first.")
+    try:
+        return json.loads(p.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as e:
+        sys.exit(f"{path} isn't valid JSON (line {e.lineno}, column {e.colno}): {e.msg}. "
+                 "A common cause is a trailing comma before ] or }.")
+
+
+def project_root(start):
+    """The project folder: the nearest folder (from start upward) that holds raw/ or exports/."""
+    p = Path(start).resolve()
+    p = p if p.is_dir() else p.parent
+    for d in [p] + list(p.parents):
+        if (d / "raw").is_dir() or (d / "exports").is_dir():
+            return d
+    return p.parent if p.name == "work" else p
 
 
 def write_json(path, data):

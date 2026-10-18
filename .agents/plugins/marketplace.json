@@ -1,0 +1,17 @@
+{
+  "name": "mavgpt",
+  "plugins": [
+    {
+      "name": "ai-file-system",
+      "source": {
+        "source": "local",
+        "path": "./plugins/ai-file-system"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

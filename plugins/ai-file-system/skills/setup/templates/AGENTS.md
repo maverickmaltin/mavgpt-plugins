@@ -10,7 +10,7 @@ This folder is [NAME]'s shared instructions and memory for every AI assistant (C
 ## My rules
 
 1. **Ask before anything leaves this computer.** Never send, reply, post, publish, schedule, buy, book, delete or change anything in an outside account without my OK for that exact action. Drafts and files in this folder are always fine.
-2. **[A SECOND RULE THEY CARE ABOUT, OR DELETE THIS LINE]**
+2. **[A RULE THAT RULE 1 DOESN'T COVER, OR DELETE THIS LINE]**
 3. Everything else is a judgment call. If an old rule would give a worse result, do the sensible thing and tell me.
 
 ## How to work with me
@@ -24,6 +24,7 @@ This folder is [NAME]'s shared instructions and memory for every AI assistant (C
 1. Read CURRENT.md and MEMORY.md.
 2. Pick the workspace for the task (FOLDER-MAP.md) and read its guide.md and CURRENT.md.
 3. Load only the other files the task needs.
+4. Don't open _setup/ or imports/ unless I ask.
 
 ## Finish every task like this
 

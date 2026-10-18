@@ -15,7 +15,8 @@ storyboard.json:
   "assets_needed": ["App screenshot (from you)", "B-roll of the app (Claude records it)"]
 }
 
-Writes work/storyboard.html with one still frame per section (from the original video).
+Section start/end times are ORIGINAL-video seconds (the same times as in the transcript).
+Writes work/storyboard.html next to the JSON, with one still frame per section.
 """
 import html
 import sys
@@ -45,11 +46,13 @@ def main():
         sys.exit(__doc__)
     sb_path = Path(sys.argv[1]).resolve()
     sb = vtools.load_json(sb_path)
-    base = sb_path.parent.parent if sb_path.parent.name == "work" else sb_path.parent
+    if not sb.get("video"):
+        sys.exit("storyboard.json needs a \"video\" (for example \"raw/my-video.mp4\").")
+    base = vtools.project_root(sb_path)
     video = Path(sb["video"])
     video = video if video.is_absolute() else base / video
     ffmpeg, ffprobe, _ = vtools.need_ffmpeg()
-    stills = sb_path.parent / "storyboard"
+    stills = sb_path.parent / f"{sb_path.stem}-stills"
     stills.mkdir(parents=True, exist_ok=True)
 
     cards = []
@@ -61,7 +64,7 @@ def main():
         rows = "".join(f"<dt>{label}</dt><dd>{html.escape(str(s.get(key, '') or '-'))}</dd>"
                        for label, key in (("Cut", "cut"), ("On screen", "on_screen"), ("Asset", "asset")))
         cards.append(
-            f'<div class="card"><img src="storyboard/{img.name}" alt="Section {i}">'
+            f'<div class="card"><img src="{stills.name}/{img.name}" alt="Section {i}">'
             f'<div><span class="num">SECTION {i}</span><span class="time">{vtools.hms(float(s["start"]))} to {vtools.hms(float(s["end"]))}</span>'
             f'<div class="said">&ldquo;{html.escape(s.get("said", ""))}&rdquo;</div><dl>{rows}</dl></div></div>')
     assets = "".join(f"<li>{html.escape(a)}</li>" for a in sb.get("assets_needed", []))
@@ -72,7 +75,7 @@ def main():
             + "".join(cards)
             + (f"<div class='assets'><strong>Assets needed</strong><ul>{assets}</ul></div>" if assets else "")
             + "</main></body></html>")
-    out = sb_path.parent / "storyboard.html"
+    out = sb_path.with_suffix(".html")
     out.write_text(page, encoding="utf-8")
     print(f"Storyboard page: {out}")
 

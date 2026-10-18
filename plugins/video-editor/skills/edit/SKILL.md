@@ -28,17 +28,21 @@ If they're in a hurry, use their style and defaults and go.
 
 ## Step 2: Prepare
 
-1. Several clips? Join them first into `work/joined.mp4` with ffmpeg (re-encode to one size and frame rate so they join cleanly) and use that as the input.
-2. Transcribe: `python3 SCRIPTS/transcribe.py raw/VIDEO --out work/words.json --vocab "NAMES, BRANDS"` (add `--language en` when you know it's English; it's faster and more accurate). Read `work/transcript.txt`. Fix obvious misheard names in a `captions.fix` map (for example `{"clog code": "Claude Code"}`).
-3. Find the keepers: `python3 SCRIPTS/silences.py raw/VIDEO --words work/words.json --out work/keep.json` with their style's settings (`--min-silence`, `--pad-before`, `--pad-after`, `--remove-fillers`).
+Name every working file after the video so different videos never mix: for `raw/beach-day.mov`, NAME is `beach-day`, and you'll make `work/beach-day-words.json`, `work/beach-day-keep.json`, `work/beach-day-storyboard.json` and `work/beach-day-plan.json`.
+
+1. Several clips? Join them first: `python3 SCRIPTS/join.py raw/01.mp4 raw/02.mov --out work/NAME-joined.mp4` (in the order they should play). It handles different sizes, frame rates and audio formats. Use the joined file as the input for everything after this.
+2. Transcribe: `python3 SCRIPTS/transcribe.py raw/VIDEO --out work/NAME-words.json --vocab "NAMES, BRANDS"` (add `--language en` when you know it's English; it's faster and more accurate). Read `work/NAME-transcript.txt`. Fix obvious misheard names in a `captions.fix` map (for example `{"clog code": "Claude Code"}`).
+3. Find the keepers: `python3 SCRIPTS/silences.py raw/VIDEO --words work/NAME-words.json --out work/NAME-keep.json` with their style's settings (`--min-silence`, `--pad-before`, `--pad-after`, `--remove-fillers`).
+   - If it says it **kept long stretches with no talking**, look at those moments (`frames.py --at ...`). Action, scenery, a demo or a reaction usually stays; dead time while walking or setting up usually goes. Ask when unsure, then edit `keep` (or re-run with `--cut-long-gaps` to cut them all).
 4. Retakes: read the transcript for repeated or restarted sentences. Keep the last complete take and remove the earlier ones from the keep list. Also remove false starts and "wait, let me redo that" moments.
-5. Long videos (over about 10 minutes): split into chapters and plan/render chapter by chapter. Checking frames on a long video uses a lot of usage.
+5. Little or no talking (an action clip, a montage)? Skip captions and silence cuts. Pick the best moments by looking at frames (`frames.py --every 1`), write `keep` by hand, and lean on music, titles and zooms.
+6. Long videos (over about 10 minutes): split into chapters and plan/render chapter by chapter. Checking frames on a long video uses a lot of usage.
 
 ## Step 3: Storyboard (always wait for approval)
 
 Plan the whole edit before rendering anything. Split the video into sections (hook, each point, ending). For each section decide: what's cut, what goes on screen (caption style, title text, zoom, overlay, b-roll, screen recording) and which assets are needed.
 
-1. Write `work/storyboard.json` (format in the docstring of `SCRIPTS/storyboard.py`) and run `python3 SCRIPTS/storyboard.py work/storyboard.json`. It makes `work/storyboard.html` with a still frame per section. Tell them they can click that path to open it.
+1. Write `work/NAME-storyboard.json` (format in the docstring of `SCRIPTS/storyboard.py`; times are original-video seconds, the same as the transcript) and run `python3 SCRIPTS/storyboard.py work/NAME-storyboard.json`. It makes `work/NAME-storyboard.html` with a still frame per section. Tell them they can click that path to open it.
 2. Also show a compact table in the chat: Section, Time, What they say, On screen, Asset.
 3. List assets needed, and for each say whether you'll make it or need it from them.
 4. Ask: "Any changes? Point at a section number, or say it looks good." Wait. Apply changes and re-show only what changed.
@@ -51,23 +55,23 @@ Editing judgment to use:
 
 ## Step 4: Build the plan and render a preview
 
-Write `work/plan.json` from the approved storyboard (see the plan format reference). Then:
+Write `work/NAME-plan.json` from the approved storyboard (see the plan format reference). Place titles, zooms, overlays and b-roll at the ORIGINAL video's times, the same times you see in `NAME-words.json`. That way changing `keep` later never moves them. Then:
 
-`python3 SCRIPTS/render.py work/plan.json --preview`
+`python3 SCRIPTS/render.py work/NAME-plan.json --preview`
 
 It makes a fast half-size draft in `exports/`. Then check your own work before showing them:
 - `python3 SCRIPTS/frames.py exports/NAME-preview.mp4 --every 2 --out work/check` and look at the frames. Check: captions readable and not on the face, no typos, titles on screen at the right moments, overlays not covering anything important, nothing cut off at the edges, the right shape.
-- Spot-check caption timing against `work/words.json` for three or four words.
+- Spot-check caption timing against `work/NAME-words.json` for three or four words.
 - Check the cut list: no part shorter than about 0.3 seconds unless intended, no cut landing mid-sentence.
 Fix what you find, re-render, then tell them what you fixed in one line and give the preview path (they click it to watch with sound).
 
 ## Step 5: Changes
 
-They'll say things like "captions bigger", "the cut at 0:14 is too sudden", "zoom when I say insane", "put back the part about pricing". Translate each into plan changes (times in the plan are in the edited video's timeline, except `keep`, which uses the original video's times). Re-render the preview. Repeat until they're happy. If they say "add that to my style", update `~/.claude/skills/my-video-style/SKILL.md` (see the style skill).
+They'll say things like "captions bigger", "the cut at 0:14 is too sudden", "zoom when I say insane", "put back the part about pricing". Translate each into plan changes. When they point at a time in the preview, that's the edited timeline: find the words they mean in the transcript to get the original time. Re-render the preview. Repeat until they're happy. If they say "add that to my style", update `~/.claude/skills/my-video-style/SKILL.md` (see the style skill).
 
 ## Step 6: Final export
 
-`python3 SCRIPTS/render.py work/plan.json` (full quality). Then report: file path, length, size, and shape. Offer, in one line each: another shape (16:9 or 9:16 from the same plan), shorts from it (`/video-editor:clips`), or saving any new preferences to their style. Never post or upload it.
+`python3 SCRIPTS/render.py work/NAME-plan.json` (full quality). Then report: file path, length, size, and shape. Offer, in one line each: another shape, shorts from it (`/video-editor:clips`), or saving any new preferences to their style. For another shape, copy the plan to `work/NAME-16x9-plan.json`, change `canvas` and `output`, use `"fit": "blur"` when going from vertical footage to horizontal, then preview and re-check the logo size and title positions. Never post or upload it.
 
 ## Extra powers (use when asked or when the storyboard needs them)
 

@@ -7,9 +7,9 @@ description: Build the user's AI file system, one organized folder of plain-text
 
 You are an onboarding coach and builder. You're creating a folder that makes every future AI session start already knowing who this person is, what they're working on and how they like things done. Talk in plain words, keep messages short, ask questions in small batches with suggested answers, and let them talk instead of type if they like. You do all the file work; they never have to write a file themselves.
 
-Templates are in `${CLAUDE_PLUGIN_ROOT}/skills/setup/templates/` (call it TEMPLATES). If that path shows a literal `${...}` (for example in Codex), the templates are in the `templates` folder next to this SKILL.md.
+Templates are in the `templates/` folder next to this SKILL.md (in Claude Code that is `${CLAUDE_PLUGIN_ROOT}/skills/setup/templates/`). Call it TEMPLATES. Other skills of this plugin sit next to this one: `../import-history/SKILL.md`, `../remember/SKILL.md` and so on.
 
-Tell them which step you're on in one short line ("Step 3 of 7: getting to know you").
+Tell them which step you're on in one short line ("Step 4 of 7: getting to know you").
 
 ## Step 1: Check where we are
 
@@ -21,7 +21,7 @@ Tell them which step you're on in one short line ("Step 3 of 7: getting to know 
 2. The folder should be a new, dedicated one called **[Their Name] OS** (or a name they pick). If you've been pointed at their whole Desktop, Documents or home folder, don't build there. Ask them to make the dedicated folder and reopen the session in it.
 3. Print the folder's full path and confirm it with them.
 4. Look for `_setup/progress.json`. If it exists, read it and `_setup/interview-notes.md` and pick up where you left off instead of starting again. If the folder already has their own files, never reorganize or delete them; add the system around them and ask before moving anything.
-5. Create `_setup/interview-notes.md` with today's date and read it back, to prove you can write here.
+5. Create `_setup/interview-notes.md` with today's date and `_setup/progress.json` (the current step and what's done), and read them back to prove you can write here. Update progress.json after every step.
 
 Suggest the best settings in one line: the strongest model they have (Opus 5.5 in Claude, the top model in Codex) and a high effort level. You can't change these yourself.
 
@@ -35,7 +35,7 @@ Ask: what should the system be called, and do they prefer typing or talking (the
 
 ## Step 3: Bring in what they've already told AI (optional)
 
-Ask whether they have a ChatGPT or Claude data export they'd like to use, or want to skip it. History makes the setup much richer, but it's optional. If yes, follow `${CLAUDE_PLUGIN_ROOT}/skills/import-history/SKILL.md` now, then come back here. If no, record "history import: skipped" in `_setup/progress.json`.
+Ask whether they have a ChatGPT or Claude data export they'd like to use, or want to skip it. History makes the setup much richer, but it's optional. If yes, follow `../import-history/SKILL.md` (the import-history skill next to this one) now, then come back here. If no, record "history import: skipped" in `_setup/progress.json`.
 
 ## Step 4: Get to know them
 
@@ -60,6 +60,7 @@ Create this structure, filling every file from TEMPLATES with what you learned. 
 ```
 [Name] OS/
   START-HERE.md        what this is and how to use it (for them)
+  CURRENT.md           what matters right now
   AGENTS.md            the rulebook every assistant reads first
   CLAUDE.md            tells Claude to follow AGENTS.md
   MEMORY.md            short list of lasting preferences
@@ -97,11 +98,11 @@ Explain how each app finds the system, and set up the ones they use:
 
 1. Check the files: every path mentioned in AGENTS.md and FOLDER-MAP.md exists, each workspace has guide.md and CURRENT.md, no [PLACEHOLDER] text is left, and nothing private slipped in.
 2. Do one real task with them using the folder, for example "summarize what's on my plate this week" or a draft in their voice, saved to the right `outputs/`. Show how it read the files first.
-3. Update `_setup/progress.json` to complete.
+3. Update `_setup/progress.json` to complete, and put "Setup record, not kept current. The real files are AGENTS.md, context/ and workspaces/." at the top of `_setup/interview-notes.md`.
 4. Finish with a short message:
    - where START-HERE.md is,
    - the daily habit: open Claude or Codex in this folder and just say what you need,
-   - three commands: "remember this" (or `/ai-file-system:remember`) saves something to the right file, `/ai-file-system:add-workspace` adds a new area, `/ai-file-system:tidy` cleans up once a month,
+   - three phrases that work in Claude and Codex: "remember this: ..." saves something to the right file, "add a workspace for ..." adds a new area, "tidy my file system" cleans up once a month (in Claude they can also type /ai-file-system:remember, /ai-file-system:add-workspace, /ai-file-system:tidy),
    - that every task ends with the AI saving what it learned, so the system gets better on its own.
 
 If you run out of room or get interrupted, save progress and the exact next step to `_setup/progress.json` before stopping.

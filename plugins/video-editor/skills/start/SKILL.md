@@ -16,7 +16,8 @@ Work through these steps in order. Tell them which step you're on in one short l
 1. You need to be running on their own computer with access to a folder (the Claude desktop app's **Code** tab, or Claude Code in a terminal). If you can't run commands or see local files, tell them to open the Claude desktop app, click **Code**, choose **Local**, click **Select folder** and pick (or create) a folder called **Video Edits**, then run `/video-editor:start` again. Stop there.
 2. Ask them to check the model and effort: **Opus 5.5** in the model menu next to the send button, and effort on **Max** (Cmd+Shift+E on a Mac opens the effort menu). You can't change these yourself, so just ask them to confirm. A lower setting works, it just makes more mistakes on big edits.
 3. Confirm the working folder (print its full path). If it isn't a dedicated folder for videos (for example it's their whole Desktop or home folder), suggest making a **Video Edits** folder and reopening the session there.
-4. Create the project folders if they don't exist: `raw/` (their original videos), `assets/` (logos, b-roll, music, screenshots, fonts), `work/` (your working files), `exports/` (finished videos). Explain each in one line.
+4. On a brand-new Mac, the first `python3` command may pop up an "install command line developer tools" window. Tell them to click Install, wait for it to finish, then continue.
+5. Create the project folders if they don't exist: `raw/` (their original videos), `assets/` (logos, b-roll, music, screenshots, fonts), `work/` (your working files), `exports/` (finished videos). Explain each in one line.
 
 ## Step 2: Install the tools (one time only)
 
@@ -39,7 +40,7 @@ Batch 1, the basics:
 - How tight should cuts be? (natural / tight / very tight) [tight: cut pauses over 0.2s]
 
 Batch 2, captions:
-- Captions on? [yes]. Style: (big bold with the current word highlighted / clean simple white / all caps punchy) [big bold, white with yellow highlight]
+- Captions on? [yes]. Style: (big bold with the current word highlighted / clean simple white / all caps punchy) [big bold (size 100), white with yellow highlight]
 - Words on screen at once? [3]. Where? (lower middle / center) [lower middle, clear of your face and the app buttons]
 - Brand colors? (give hex codes, or describe them) [white and yellow]
 

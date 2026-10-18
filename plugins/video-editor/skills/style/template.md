@@ -20,7 +20,7 @@ Use these settings for every edit unless I ask for something different in the mo
 
 ## Captions
 - On: [YES]
-- words_per_caption [3], font "[Arial Black]", size [84], color "[#FFFFFF]", highlight "[#FFD400]", outline [6], position [0.7], uppercase [false], punctuation [false]
+- words_per_caption [3], font "[Arial Black]", size [100], color "[#FFFFFF]", highlight "[#FFD400]", outline [6], position [0.7], uppercase [false], punctuation [false]
 - Spelling: [NAMES AND BRANDS TO ALWAYS SPELL RIGHT]
 
 ## Titles
@@ -35,7 +35,7 @@ Use these settings for every edit unless I ask for something different in the mo
 
 ## Brand
 - Colors: [HEX CODES]
-- Logo: [assets/logo.png, TOP RIGHT, 0.18 WIDTH] or [NONE]
+- Logo: [assets/logo.png as an overlay: x 0.88, y 0.07, width 0.14, anim none, the whole video] or [NONE]
 - Fonts: [FONT NAMES, fonts_dir assets/fonts] or [SYSTEM FONTS]
 - End card / call to action: [TEXT OR NONE]
 
@@ -44,7 +44,7 @@ Use these settings for every edit unless I ask for something different in the mo
 - Loudness: target_lufs [-14]. Denoise: [NO]
 
 ## Exports
-- Final: [exports/NAME-final.mp4], crf [18]
+- Final: [exports/NAME-final.mp4], crf [20]
 - Also make: [16:9 VERSION / NONE]
 
 ## Changes

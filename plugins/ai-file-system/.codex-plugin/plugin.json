@@ -1,0 +1,6 @@
+{
+  "name": "ai-file-system",
+  "version": "1.0.0",
+  "description": "Set up one organized folder that Codex and Claude read at the start of every task: who you are, how you work, your projects and what's going on now. A guided interview builds it for you, then it keeps itself up to date.",
+  "skills": "./skills/"
+}

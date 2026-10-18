@@ -162,7 +162,7 @@ def write_ass(path, plan, W, H, words, total):
     cap = plan.get("captions") or {}
     tdef = plan.get("title_style") or {}
     font = cap.get("font", "Arial Black")
-    size = int(cap.get("size", 84 if H > W else 64))
+    size = int(cap.get("size", 100 if H > W else 68))
     outline = int(cap.get("outline", 6))
     tfont = tdef.get("font", font)
     tsize = int(tdef.get("size", 96 if H > W else 80))
@@ -194,19 +194,36 @@ def fesc(path):
     return p.replace(":", "\\:").replace("'", "\\'").replace(",", "\\,")
 
 
+def fix_loudness(ffmpeg, path, target):
+    """One-pass loudnorm can land 1 to 2 LU off on short clips. Measure and correct the gain."""
+    p = vtools.run([ffmpeg, "-hide_banner", "-nostats", "-i", str(path), "-af", "ebur128", "-f", "null", "-"])
+    found = re.findall(r"^\s+I:\s+(-?[\d.]+) LUFS", p.stderr, re.M)
+    if not found:
+        return
+    gain = target - float(found[-1])
+    if abs(gain) < 0.7:
+        return
+    tmp = path.with_name(path.stem + ".tmp" + path.suffix)
+    vtools.run([ffmpeg, "-y", "-hide_banner", "-loglevel", "error", "-i", str(path), "-map", "0", "-c:v", "copy",
+                "-af", f"volume={gain:.2f}dB,alimiter=limit=0.89:level=false", "-c:a", "aac", "-b:a", "192k",
+                "-movflags", "+faststart", str(tmp)])
+    os.replace(tmp, path)
+
+
 def build(plan_path, preview):
     plan = vtools.load_json(plan_path)
-    root = Path(plan_path).resolve().parent
-    base_dir = root.parent if root.name == "work" else root
+    base_dir = vtools.project_root(plan_path)
 
     def P(p):
         q = Path(p)
         return q if q.is_absolute() else (base_dir / q)
 
     ffmpeg, ffprobe, filters = vtools.need_ffmpeg()
+    if not plan.get("input"):
+        sys.exit("The plan has no \"input\" video. Add \"input\": \"raw/YOUR-VIDEO.mp4\".")
     src = P(plan["input"])
     if not src.exists():
-        sys.exit(f"Input video not found: {src}")
+        sys.exit(f"Input video not found: {src}\nPaths in the plan are relative to the project folder {base_dir}.")
     info = vtools.probe(src, ffprobe)
     dur = info["duration"]
 
@@ -231,14 +248,42 @@ def build(plan_path, preview):
         sys.exit("Nothing to keep: check the 'keep' list in the plan.")
     total = t
 
-    inputs = ["-i", str(src)]
+    # Place titles, zooms, overlays and b-roll on the original video's timeline by default, so
+    # changing "keep" never shifts them. "times": "edited" uses the edited timeline instead.
+    use_src = plan.get("times", "source") != "edited"
+
+    def to_out(t):
+        t = float(t)
+        if not use_src:
+            return t
+        for a, b, off in segs:
+            if t < a:
+                return off
+            if t <= b:
+                return off + (t - a)
+        return total
+
+    def span(item, kind):
+        if "start" not in item:
+            sys.exit(f"A {kind} in the plan has no \"start\" time: {item}")
+        s0 = float(item["start"])
+        e0 = float(item.get("end", s0 + 2.0))
+        s1, e1 = to_out(s0), to_out(e0)
+        if e1 - s1 < 0.05:
+            print(f"Note: skipped a {kind} at {s0:.2f}-{e0:.2f}s because that part of the video was cut.")
+            return None
+        return s1, e1
+
+    seek0 = max(0.0, segs[0][0] - 1.0)
+    inputs = (["-ss", f"{seek0:.3f}"] if seek0 > 0 else []) + ["-i", str(src)]
     n_in = 1
     fc = []
     has_audio = info["has_audio"]
 
     # 1. Cut and join the kept parts.
     cat = []
-    for i, (a, b, _) in enumerate(segs):
+    for i, (a0, b0, _) in enumerate(segs):
+        a, b = a0 - seek0, b0 - seek0
         fc.append(f"[0:v]trim=start={a:.3f}:end={b:.3f},setpts=PTS-STARTPTS[v{i}]")
         cat.append(f"[v{i}]")
         if has_audio:
@@ -268,7 +313,11 @@ def build(plan_path, preview):
     if zooms:
         terms, fxe, fye = [], "0.5", "0.42"
         for z in zooms:
-            a, b, s = float(z["start"]), float(z["end"]), float(z.get("scale", 1.12))
+            sp = span(z, "zoom")
+            if not sp:
+                continue
+            a, b = sp
+            s = float(z.get("scale", 1.12))
             e = float(z.get("ease", 0.0))
             if e > 0:
                 env = f"clip(min(it-{a:.3f},{b:.3f}-it)/{e:.3f},0,1)"
@@ -278,7 +327,7 @@ def build(plan_path, preview):
             zf = z.get("focus") or {}
             fxe = f"if(between(it,{a:.3f},{b:.3f}),{float(zf.get('x', 0.5)):.3f},{fxe})"
             fye = f"if(between(it,{a:.3f},{b:.3f}),{float(zf.get('y', 0.42)):.3f},{fye})"
-        zexpr = "1+" + "+".join(terms)
+        zexpr = "1+" + "+".join(terms or ["0"])
         fc.append(f"[{cur}]zoompan=z='{zexpr}':x='(iw-iw/zoom)*{fxe}':y='(ih-ih/zoom)*{fye}':"
                   f"d=1:s={OW}x{OH}:fps={fps}[vzoom]")
         cur = "vzoom"
@@ -286,7 +335,12 @@ def build(plan_path, preview):
     # 4. B-roll (video cut-aways) and image/video overlays.
     for k, br in enumerate(plan.get("broll") or []):
         f = P(br["file"])
-        a, b = float(br["start"]), float(br["end"])
+        if not f.exists():
+            sys.exit(f"B-roll file not found: {f}")
+        sp = span(br, "b-roll clip")
+        if not sp:
+            continue
+        a, b = sp
         ss = float(br.get("from", 0))
         inputs += ["-i", str(f)]
         idx = n_in
@@ -306,7 +360,12 @@ def build(plan_path, preview):
 
     for k, ov in enumerate(plan.get("overlays") or []):
         f = P(ov["file"])
-        a, b = float(ov["start"]), float(ov["end"])
+        if not f.exists():
+            sys.exit(f"Overlay file not found: {f}")
+        sp = span(ov, "overlay")
+        if not sp:
+            continue
+        a, b = sp
         is_img = f.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp")
         if is_img:
             inputs += ["-loop", "1", "-framerate", str(fps), "-t", f"{total:.3f}", "-i", str(f)]
@@ -314,7 +373,8 @@ def build(plan_path, preview):
             inputs += ["-i", str(f)]
         idx = n_in
         n_in += 1
-        pw = even(OW * float(ov.get("width", 0.7)))
+        # width is a fraction of the frame's shorter side, so a logo looks the same in 9:16 and 16:9.
+        pw = even(min(OW, OH) * float(ov.get("width", 0.7)))
         fade = float(ov.get("fade", 0.2))
         shift = "" if is_img else f",setpts=PTS-STARTPTS+{a:.3f}/TB"
         fc.append(f"[{idx}:v]format=rgba,scale={pw}:-2{shift},"
@@ -327,6 +387,8 @@ def build(plan_path, preview):
             y_expr += f"+{OH * 0.04:.1f}*(1-clip((t-{a:.3f})/0.25,0,1))"
         elif anim == "slide-left":
             x_expr += f"+{OW * 0.08:.1f}*(1-clip((t-{a:.3f})/0.25,0,1))"
+        x_expr = f"clip({x_expr},0,W-w)"
+        y_expr = f"clip({y_expr},0,H-h)"
         fc.append(f"[{cur}][ov{k}]overlay=x='{x_expr}':y='{y_expr}':enable='between(t,{a:.3f},{b:.3f})':eof_action=pass[vo{k}]")
         cur = f"vo{k}"
 
@@ -346,8 +408,18 @@ def build(plan_path, preview):
     words = []
     cap = plan.get("captions") or {}
     if cap.get("enabled", True) and cap.get("words"):
-        wsrc = vtools.load_json(P(cap["words"]))["words"]
-        words = remap_words(wsrc, segs)
+        wdata = vtools.load_json(P(cap["words"]))
+        wfile = Path(str(wdata.get("source", ""))).name
+        wdur = float(wdata.get("duration") or 0)
+        if wfile and (wfile != src.name or (wdur and abs(wdur - dur) > 0.5)):
+            sys.exit(f"The captions file {cap['words']} was made from {wfile}, but this plan edits {src.name}. "
+                     f"Transcribe {plan['input']} (for example to work/{src.stem}-words.json) and point "
+                     "captions.words at that file.")
+        words = remap_words(wdata["words"], segs)
+        if not words:
+            print("Note: the transcript has no words in the kept parts, so there are no captions.")
+    elif cap.get("enabled", True) and not cap.get("words") and plan.get("captions"):
+        print("Note: captions are on but captions.words isn't set, so there are no captions.")
     workdir = P(plan.get("work_dir", "work"))
     workdir.mkdir(parents=True, exist_ok=True)
     ass_path = workdir / ("captions-preview.ass" if preview else "captions.ass")
@@ -355,7 +427,14 @@ def build(plan_path, preview):
     if words or plan.get("titles"):
         if not (vtools.CAPTION_FILTERS & filters):
             sys.exit("This ffmpeg can't draw captions (no libass). Install ffmpeg-full (Mac) or the Gyan build (Windows), then run again.")
-        n_text = write_ass(ass_path, plan, W, H, words, total)
+        titles = []
+        for t_ in plan.get("titles") or []:
+            if not t_.get("text"):
+                sys.exit(f"A title in the plan has no \"text\": {t_}")
+            sp = span(t_, "title")
+            if sp:
+                titles.append(dict(t_, start=sp[0], end=sp[1]))
+        n_text = write_ass(ass_path, dict(plan, titles=titles), W, H, words, total)
         fonts = plan.get("fonts_dir")
         fdir = f":fontsdir='{fesc(P(fonts))}'" if fonts else ""
         fc.append(f"[{cur}]subtitles=filename='{fesc(ass_path)}'{fdir}[vtxt]")
@@ -372,6 +451,8 @@ def build(plan_path, preview):
             acur = "aden"
         mus = plan.get("music") or {}
         if mus.get("file"):
+            if not P(mus["file"]).exists():
+                sys.exit(f"Music file not found: {P(mus['file'])}")
             inputs += ["-stream_loop", "-1", "-i", str(P(mus["file"]))]
             idx = n_in
             n_in += 1
@@ -392,10 +473,24 @@ def build(plan_path, preview):
                       "aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo[aout]")
         else:
             fc.append(f"[{acur}]aresample=48000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo[aout]")
+    elif (plan.get("music") or {}).get("file"):
+        # A silent video with music: the music becomes the soundtrack.
+        mus = plan["music"]
+        mf = P(mus["file"])
+        if not mf.exists():
+            sys.exit(f"Music file not found: {mf}")
+        inputs += ["-stream_loop", "-1", "-i", str(mf)]
+        idx = n_in
+        n_in += 1
+        fc.append(f"[{idx}:a]atrim=0:{total:.3f},asetpts=PTS-STARTPTS,volume={float(mus.get('volume', 0.5))},"
+                  f"afade=t=out:st={max(0, total - 1.5):.3f}:d=1.5,"
+                  "aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo[aout]")
+        has_audio = True
 
     out = P(plan.get("output", "exports/edit.mp4"))
     if preview:
-        out = out.with_name(out.stem + "-preview" + out.suffix)
+        stem = out.stem[:-6] if out.stem.endswith("-final") else out.stem
+        out = out.with_name(stem + "-preview" + out.suffix)
     out.parent.mkdir(parents=True, exist_ok=True)
     script = workdir / ("filter-preview.txt" if preview else "filter.txt")
     script.write_text(";\n".join(fc), encoding="utf-8")
@@ -403,7 +498,9 @@ def build(plan_path, preview):
     enc = vtools.encoders_of(ffmpeg)
     if "libx264" in enc:
         venc = ["-c:v", "libx264", "-preset", "veryfast" if preview else "medium",
-                "-crf", "28" if preview else str(plan.get("crf", 18))]
+                "-crf", "28" if preview else str(plan.get("crf", 20))]
+        if not preview:
+            venc += ["-maxrate", "16M", "-bufsize", "32M"]
     elif "h264_videotoolbox" in enc:
         venc = ["-c:v", "h264_videotoolbox", "-b:v", "3M" if preview else "12M"]
     else:
@@ -416,6 +513,8 @@ def build(plan_path, preview):
 
     t0 = time.time()
     vtools.run(cmd)
+    if has_audio and not preview and aud.get("loudnorm", True):
+        fix_loudness(ffmpeg, out, float(aud.get("target_lufs", -14)))
     took = time.time() - t0
     size = out.stat().st_size / 1e6
     print(f"{'Preview' if preview else 'Final'} saved: {out}")

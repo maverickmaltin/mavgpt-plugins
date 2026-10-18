@@ -85,11 +85,21 @@ def main():
     ap.add_argument("--pad-after", type=float, default=0.10, help="Air kept after speech ends")
     ap.add_argument("--min-cut", type=float, default=0.12, help="Ignore cuts shorter than this")
     ap.add_argument("--remove-fillers", action="store_true", help="Also cut um/uh")
+    ap.add_argument("--max-gap", type=float, default=2.0,
+                    help="Stretches without talking longer than this that aren't quiet (action, scenery, "
+                         "music) are KEPT and listed, so a person can decide")
+    ap.add_argument("--cut-long-gaps", action="store_true", help="Cut those long stretches too")
     a = ap.parse_args()
 
     ffmpeg, ffprobe, _ = vtools.need_ffmpeg()
     info = vtools.probe(a.video, ffprobe)
     dur = info["duration"]
+    if not info["has_audio"]:
+        vtools.write_json(a.out, {"source": a.video, "duration": round(dur, 3), "keep": [[0.0, round(dur, 3)]],
+                                  "kept_seconds": round(dur, 3), "removed_seconds": 0.0, "long_gaps_kept": []})
+        print(f"This video has no sound, so there are no silences to cut. Kept all {vtools.hms(dur)}. "
+              f"Pick moments by looking at frames instead (frames.py --every 1). Saved {a.out}")
+        return
     noise = detect_noise_floor(ffmpeg, a.video) if a.noise == "auto" else float(a.noise)
     silences = detect_silences(ffmpeg, a.video, noise, a.min_silence)
 
@@ -97,7 +107,7 @@ def main():
     words = vtools.load_json(a.words)["words"] if a.words else []
     speech = [w for w in words if not (a.remove_fillers and norm(w["text"]) in FILLERS)]
 
-    cuts = []
+    cuts, long_gaps = [], []
     if speech:
         # Pauses come from the transcript, so noisy footage (wind, music, a street) still gets
         # tightened. Where the audio is truly quiet inside a pause, use those exact edges.
@@ -125,6 +135,9 @@ def main():
                     if c1 - c0 > a.min_cut:
                         cuts.append([c0, c1])
             else:
+                if g1 - g0 > a.max_gap and not a.cut_long_gaps:
+                    long_gaps.append([round(g0, 2), round(g1, 2)])
+                    continue
                 c0 = g0 + (0.0 if lead == 0.0 else max(a.pad_after, 0.2))
                 c1 = g1 - (0.0 if tail == 0.0 else max(a.pad_before, 0.1))
                 if c1 - c0 > a.min_cut:
@@ -149,17 +162,28 @@ def main():
         if a.remove_fillers:
             holes = [[w["start"], w["end"]] for w in words if norm(w["text"]) in FILLERS]
             keep = merge(subtract(keep, holes), gap=a.min_cut)
+        # Drop leftover slivers that hold no words (for example the air around a removed "um").
+        keep = [k for k in keep if k[1] - k[0] > a.max_gap or
+                any(w["start"] < k[1] and w["end"] > k[0] for w in speech)]
     keep = [[round(k0, 3), round(k1, 3)] for k0, k1 in keep if k1 - k0 >= 0.08]
 
     kept = sum(k1 - k0 for k0, k1 in keep)
     vtools.write_json(a.out, {
         "source": a.video, "duration": round(dur, 3), "keep": keep,
-        "kept_seconds": round(kept, 3), "removed_seconds": round(dur - kept, 3),
+        "kept_seconds": round(kept, 3), "removed_seconds": round(max(0.0, dur - kept), 3),
+        "long_gaps_kept": long_gaps,
         "settings": {"noise_db": round(noise, 1), "min_silence": a.min_silence, "pad_before": a.pad_before,
                      "pad_after": a.pad_after, "remove_fillers": a.remove_fillers},
     })
     print(f"Silence threshold {noise:.1f} dB. {len(keep)} parts kept, {max(0, len(keep) - 1)} cuts.")
-    print(f"{vtools.hms(dur)} -> {vtools.hms(kept)} (removed {dur - kept:.1f}s). Saved {a.out}")
+    print(f"{vtools.hms(dur)} -> {vtools.hms(kept)} (removed {max(0.0, dur - kept):.1f}s). Saved {a.out}")
+    if words and not speech:
+        print("No speech found in the transcript, so only truly quiet parts were cut.")
+    if long_gaps:
+        spots = ", ".join(f"{vtools.hms(g0)}-{vtools.hms(g1)}" for g0, g1 in long_gaps)
+        print(f"Kept {len(long_gaps)} long stretch(es) with no talking that aren't quiet: {spots}. "
+              "Look at them (frames.py --at ...) and ask the user whether to keep them; "
+              "re-run with --cut-long-gaps to cut them all.")
 
 
 if __name__ == "__main__":

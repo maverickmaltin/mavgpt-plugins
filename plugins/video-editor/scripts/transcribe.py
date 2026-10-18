@@ -2,12 +2,12 @@
 """Transcribe a video with word-level timestamps.
 
 Usage:
-    python3 transcribe.py raw/my-video.mp4 --out work/words.json
+    python3 transcribe.py raw/my-video.mp4 --out work/my-video-words.json
         [--model small] [--language en] [--vocab "Claude, Opus, Higgsfield"]
 
 Writes:
-    work/words.json      every word with start/end seconds (source timeline)
-    work/transcript.txt  readable transcript, one line per phrase with timestamps
+    work/NAME-words.json      every word with start/end seconds (original video timeline)
+    work/NAME-transcript.txt  readable transcript, one line per phrase with timestamps
 
 Uses faster-whisper (pip install --user faster-whisper). Falls back to openai-whisper if
 that's what is installed. Runs on the user's own computer.
@@ -17,7 +17,11 @@ import importlib.util
 import os
 import sys
 import tempfile
+import warnings
 from pathlib import Path
+
+# numpy prints harmless "divide by zero in matmul" warnings on some Macs. Hide them.
+warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import vtools  # noqa: E402
@@ -87,9 +91,14 @@ def main():
     vtools.write_json(out, {"source": os.path.abspath(a.video), "duration": info["duration"],
                             "language": lang, "model": model, "words": words, "segments": segs})
     lines = [f"[{vtools.hms(s['start'])} - {vtools.hms(s['end'])}] {s['text']}" for s in segs]
-    (out.parent / "transcript.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    name = out.stem[:-6] if out.stem.endswith("-words") else out.stem
+    txt = out.with_name(f"{name}-transcript.txt")
+    txt.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"Transcribed {vtools.hms(info['duration'])} of video: {len(words)} words, language {lang}.")
-    print(f"Words: {out}\nTranscript: {out.parent / 'transcript.txt'}")
+    print(f"Words: {out}\nTranscript: {txt}")
+    if not words:
+        print("No speech found. That's normal for action or scenery footage: skip captions and "
+              "silence cuts, and pick moments by looking at frames (frames.py --every 1).")
     low = [w["text"] for w in words if w.get("p", 1) < 0.5]
     if low:
         print("Low-confidence words to double-check: " + ", ".join(sorted(set(low))[:30]))
