@@ -108,15 +108,20 @@ def find_ffmpeg(require_captions=True):
 
 
 def save_config(**values):
-    CONFIG.parent.mkdir(parents=True, exist_ok=True)
-    data = {}
-    if CONFIG.exists():
-        try:
-            data = json.loads(CONFIG.read_text())
-        except Exception:
-            data = {}
-    data.update(values)
-    CONFIG.write_text(json.dumps(data, indent=2))
+    """Remember where ffmpeg is. Skipped quietly where the home folder can't be written
+    (for example inside a sandbox): the scripts search again next time."""
+    try:
+        CONFIG.parent.mkdir(parents=True, exist_ok=True)
+        data = {}
+        if CONFIG.exists():
+            try:
+                data = json.loads(CONFIG.read_text())
+            except Exception:
+                data = {}
+        data.update(values)
+        CONFIG.write_text(json.dumps(data, indent=2))
+    except OSError:
+        pass
 
 
 def need_ffmpeg():
@@ -144,7 +149,7 @@ def probe(path, ffprobe=None):
     p = run([ffprobe, "-v", "error", "-print_format", "json", "-show_format", "-show_streams", str(path)])
     data = json.loads(p.stdout)
     info = {"duration": float(data.get("format", {}).get("duration") or 0), "has_audio": False,
-            "width": 0, "height": 0, "fps": 30.0}
+            "width": 0, "height": 0, "fps": 30.0, "hdr": False}
     for s in data.get("streams", []):
         if s.get("codec_type") == "video" and not info["width"]:
             w, h = int(s.get("width") or 0), int(s.get("height") or 0)
@@ -157,6 +162,8 @@ def probe(path, ffprobe=None):
             if abs(rot) % 180 == 90:
                 w, h = h, w
             info["width"], info["height"] = w, h
+            # iPhone HDR (HLG) and other HDR video look grey and washed out unless converted.
+            info["hdr"] = s.get("color_transfer") in ("arib-std-b67", "smpte2084")
             rate = s.get("avg_frame_rate") or s.get("r_frame_rate") or "30/1"
             try:
                 n, d = rate.split("/")

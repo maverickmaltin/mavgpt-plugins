@@ -34,7 +34,15 @@ def extract_audio(video, ffmpeg, dest):
 
 def with_faster_whisper(wav, model_name, language, vocab):
     from faster_whisper import WhisperModel
-    model = WhisperModel(model_name, device="cpu", compute_type="int8")
+    try:
+        model = WhisperModel(model_name, device="cpu", compute_type="int8")
+    except (PermissionError, OSError) as e:
+        # Some sandboxes can't write the usual model cache in the home folder: keep the model
+        # in this project's work/.models instead (it downloads once, about 150-500 MB).
+        root = Path("work") / ".models"
+        root.mkdir(parents=True, exist_ok=True)
+        print(f"Note: couldn't use the usual model folder ({e.__class__.__name__}); using {root}.")
+        model = WhisperModel(model_name, device="cpu", compute_type="int8", download_root=str(root))
     segments, info = model.transcribe(str(wav), language=language, word_timestamps=True,
                                       initial_prompt=vocab or None, vad_filter=True,
                                       vad_parameters={"min_silence_duration_ms": 300},

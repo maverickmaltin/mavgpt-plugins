@@ -9,8 +9,9 @@
     {
       "name": "video-editor",
       "source": "./plugins/video-editor",
-      "description": "Edit your videos in Claude: captions, silence cuts, zooms, titles, b-roll and music, planned with a storyboard first and saved in your own editing style.",
-      "category": "productivity"
+      "description": "Your own AI video editor: it studies your videos (or creators you love) frame by frame, writes your personal editing skill, then edits every new video in that style.",
+      "category": "productivity",
+      "version": "2.0.0"
     },
     {
       "name": "ai-file-system",

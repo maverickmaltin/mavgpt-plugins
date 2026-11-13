@@ -1,0 +1,5 @@
+interface:
+  display_name: "Video Editor: your style"
+  short_description: "Build, update or share your editing style"
+  brand_color: "#F5A623"
+  default_prompt: "Use $video-editor:style to show my editing style."

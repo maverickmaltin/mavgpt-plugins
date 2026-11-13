@@ -1,0 +1,141 @@
+{
+  "_about": "Settings every edit starts from. 'plan' is copied into each video's plan.json (field meanings: the plugin's skills/edit/reference/plan-format.md). 'cutting' sets silences.py and tighten.py, 'check' sets checkcuts.py, and 'rules' tells the editor when to add titles, zooms, overlays and sound effects. Replace every value with the measured one. Set fonts_dir and sfx_dir only when the style has its own fonts or sound effects (otherwise null).",
+  "style": "[STYLE]-editing-style",
+  "plan": {
+    "canvas": {
+      "width": 1080,
+      "height": 1920,
+      "fps": "source",
+      "fit": "cover",
+      "focus": {
+        "x": 0.5,
+        "y": 0.4
+      }
+    },
+    "captions": {
+      "enabled": true,
+      "words_per_caption": 3,
+      "font": "Arial Black",
+      "size": 90,
+      "bold": true,
+      "color": "#FFFFFF",
+      "highlight": false,
+      "highlight_mode": "color",
+      "outline": 0,
+      "shadow": 3,
+      "position": 0.72,
+      "uppercase": true,
+      "punctuation": false,
+      "animation": "none",
+      "fix": {}
+    },
+    "title_style": {
+      "font": "Arial Black",
+      "size": 80,
+      "color": "#000000",
+      "box": "#FFFFFF"
+    },
+    "punch_ins": {
+      "pattern": [
+        1.0,
+        1.08
+      ],
+      "focus": {
+        "x": 0.5,
+        "y": 0.38
+      }
+    },
+    "grade": null,
+    "music": null,
+    "sfx_dir": null,
+    "fonts_dir": null,
+    "progress_bar": {
+      "enabled": false
+    },
+    "audio": {
+      "loudnorm": true,
+      "target_lufs": -14,
+      "denoise": false
+    },
+    "crf": 18
+  },
+  "cutting": {
+    "min_silence": 0.2,
+    "pad_before": 0.05,
+    "pad_after": 0.1,
+    "remove_fillers": true,
+    "air_ms": 30,
+    "max_pause": 0.15,
+    "retakes": "keep the last full take"
+  },
+  "check": {
+    "max_sentence_ms": 80,
+    "max_other_ms": 150
+  },
+  "rules": {
+    "hook_title": {
+      "use": true,
+      "text": "their hook in 3 to 7 words, their wording",
+      "position": 0.18,
+      "style": "pop",
+      "box": true,
+      "color": "#000000",
+      "box_color": "#FFFFFF",
+      "until": "end of the first sentence",
+      "rounded": false,
+      "_note": "style none = already there on the first frame; rounded true = rounded corners (needs Pillow)"
+    },
+    "first_visual_by_s": 3.5,
+    "change_every_s": [
+      1.5,
+      4.0
+    ],
+    "zooms": {
+      "when": "every number and every key word said with emphasis",
+      "scale": 1.15,
+      "ease": 0.25,
+      "max_per_10s": 2
+    },
+    "overlays": {
+      "when": "whenever an app, product, result or number is named",
+      "x": 0.5,
+      "y": 0.4,
+      "width": 0.86,
+      "anim": "slide-up",
+      "fade": 0.12
+    },
+    "broll": {
+      "mode": "full",
+      "when": "a place, object or action is named and there's footage for it"
+    },
+    "sfx": [
+      {
+        "event": "overlay or screen appears",
+        "name": "click",
+        "volume": 0.5
+      },
+      {
+        "event": "b-roll slides in",
+        "name": "whoosh",
+        "volume": 0.45
+      },
+      {
+        "event": "under the hook, ending on the first cut",
+        "name": "riser",
+        "volume": 0.35
+      }
+    ],
+    "logo": null,
+    "cta": {
+      "use": true,
+      "text": "their call to action, their words",
+      "from": "the last sentence",
+      "style": "same as the hook title"
+    },
+    "export": {
+      "name": "NAME-final.mp4 (or the person's own naming, e.g. '{title} (Draft {n}).mp4')",
+      "versions": [],
+      "srt": true
+    }
+  }
+}

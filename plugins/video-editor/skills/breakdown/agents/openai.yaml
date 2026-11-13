@@ -1,0 +1,5 @@
+interface:
+  display_name: "Video Editor: break down a video"
+  short_description: "Frame-by-frame breakdown of any video's editing"
+  brand_color: "#F5A623"
+  default_prompt: "Use $video-editor:breakdown to break down how this video is edited."

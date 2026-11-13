@@ -1,22 +1,25 @@
 {
   "name": "video-editor",
   "displayName": "Video Editor",
-  "version": "1.0.0",
-  "description": "Edit your videos in Claude: captions, silence cuts, zooms, titles, b-roll and music. Plans every edit as a storyboard first and saves your own editing style so every video comes out the way you like.",
+  "version": "2.0.0",
+  "description": "Your own AI video editor. It studies your videos (or the creators you want to edit like) frame by frame, writes your personal editing skill from them, then edits every new video in that style: dead space cut without clipping a word, captions, text, zooms, b-roll, color and sound, checked against your references before you see it.",
   "author": {
     "name": "Maverick Maltin",
     "url": "https://mavgpt.ai"
   },
-  "homepage": "https://mavgpt.ai/resources/make-videos-using-claude",
+  "homepage": "https://mavgpt.ai/resources/ai-can-now-edit-videos-for-you",
   "repository": "https://github.com/maverickmaltin/mavgpt-plugins",
   "license": "MIT",
   "keywords": [
     "video editing",
+    "editing style",
+    "skill builder",
     "captions",
-    "ffmpeg",
+    "dead space",
     "reels",
     "tiktok",
     "youtube shorts",
+    "ffmpeg",
     "storyboard"
   ]
 }

@@ -10,7 +10,8 @@ storyboard.json:
   "video": "raw/my-video.mp4",
   "sections": [
     {"start": 0.0, "end": 2.1, "said": "Claude can now edit videos for you.",
-     "cut": "Nothing", "on_screen": "Big pop-in title, quick zoom", "asset": "None"}
+     "cut": "Nothing", "on_screen": "Big pop-in title, quick zoom", "sound": "Riser into the first cut",
+     "asset": "None"}
   ],
   "assets_needed": ["App screenshot (from you)", "B-roll of the app (Claude records it)"]
 }
@@ -62,7 +63,7 @@ def main():
         vtools.run([ffmpeg, "-y", "-hide_banner", "-loglevel", "error", "-ss", f"{mid:.3f}", "-i", str(video),
                     "-frames:v", "1", "-vf", "scale=360:-2", "-q:v", "4", str(img)])
         rows = "".join(f"<dt>{label}</dt><dd>{html.escape(str(s.get(key, '') or '-'))}</dd>"
-                       for label, key in (("Cut", "cut"), ("On screen", "on_screen"), ("Asset", "asset")))
+                       for label, key in (("Cut", "cut"), ("On screen", "on_screen"), ("Sound", "sound"), ("Asset", "asset")))
         cards.append(
             f'<div class="card"><img src="{stills.name}/{img.name}" alt="Section {i}">'
             f'<div><span class="num">SECTION {i}</span><span class="time">{vtools.hms(float(s["start"]))} to {vtools.hms(float(s["end"]))}</span>'

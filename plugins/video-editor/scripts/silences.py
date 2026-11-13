@@ -138,8 +138,8 @@ def main():
                 if g1 - g0 > a.max_gap and not a.cut_long_gaps:
                     long_gaps.append([round(g0, 2), round(g1, 2)])
                     continue
-                c0 = g0 + (0.0 if lead == 0.0 else max(a.pad_after, 0.2))
-                c1 = g1 - (0.0 if tail == 0.0 else max(a.pad_before, 0.1))
+                c0 = g0 + (0.0 if lead == 0.0 else max(a.pad_after, 0.12))
+                c1 = g1 - (0.0 if tail == 0.0 else max(a.pad_before, 0.06))
                 if c1 - c0 > a.min_cut:
                     cuts.append([c0, c1])
     else:

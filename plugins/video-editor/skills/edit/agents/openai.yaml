@@ -1,0 +1,5 @@
+interface:
+  display_name: "Video Editor: edit a video"
+  short_description: "Edit a video in your saved style"
+  brand_color: "#F5A623"
+  default_prompt: "Use $video-editor:edit to edit the video in my raw folder in my style."

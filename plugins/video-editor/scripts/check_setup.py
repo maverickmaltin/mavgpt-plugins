@@ -32,12 +32,25 @@ def main():
         "missing_filters": sorted(vtools.CORE_FILTERS - filters) if ffmpeg else sorted(vtools.CORE_FILTERS),
         "h264": False,
         "transcriber": None,
+        "numpy": bool(importlib.util.find_spec("numpy")),
+        "labels": False,
+        "hdr": False,
+        "yt_dlp": None,
+        "pillow": bool(importlib.util.find_spec("PIL")),
         "homebrew": bool(shutil.which("brew")) or Path("/opt/homebrew/bin/brew").exists() or Path("/usr/local/bin/brew").exists(),
         "todo": [],
     }
     if ffmpeg:
         enc = vtools.encoders_of(ffmpeg)
         report["h264"] = "libx264" in enc or "h264_videotoolbox" in enc or "h264_mf" in enc
+        report["labels"] = "drawtext" in filters
+        report["hdr"] = {"zscale", "tonemap"} <= filters
+    try:
+        import fetch
+        y = fetch.find_ytdlp()
+        report["yt_dlp"] = " ".join(y) if y else None
+    except Exception:
+        report["yt_dlp"] = None
     for mod in ("faster_whisper", "whisper"):
         if importlib.util.find_spec(mod):
             report["transcriber"] = mod
@@ -57,12 +70,13 @@ def main():
         todo.append("This ffmpeg is missing filters: " + ", ".join(report["missing_filters"]) + ". Install a full build (Mac: brew install ffmpeg-full, Windows: winget install --id Gyan.FFmpeg -e).")
     if ffmpeg and not report["h264"]:
         todo.append("This ffmpeg has no H.264 encoder. Install a full build (Mac: brew install ffmpeg-full, Windows: winget install --id Gyan.FFmpeg -e).")
+    if report["transcriber"] and not report["numpy"]:
+        py = "python3" if osn != "windows" else "python"
+        todo.append(f"Install numpy (the analysis and cut tools need it): {py} -m pip install --user numpy")
     if not report["transcriber"]:
         py = "python3" if osn != "windows" else "python"
         todo.append(f"Install transcription: {py} -m pip install --user faster-whisper   (first run downloads a speech model of about 500 MB).")
 
-    if ffmpeg and report["captions"] and not report["missing_filters"]:
-        vtools.save_config(ffmpeg=ffmpeg, ffprobe=ffprobe)
 
     ready = not todo
     report["ready"] = ready
@@ -75,6 +89,10 @@ def main():
         print(f"  Captions:       {'yes' if report['captions'] else 'NO'}")
         print(f"  H.264 export:   {'yes' if report['h264'] else 'NO'}")
         print(f"  Transcription:  {report['transcriber'] or 'NOT INSTALLED'}")
+        print(f"  numpy:          {'yes' if report['numpy'] else 'NO'}")
+        print(f"  Optional:       frame labels {'yes' if report['labels'] else 'no'}, HDR conversion "
+              f"{'yes' if report['hdr'] else 'no'}, link downloads (yt-dlp) {'yes' if report['yt_dlp'] else 'not installed'}, "
+              f"rounded text boxes (Pillow) {'yes' if report['pillow'] else 'not installed'}")
         if ready:
             print("\nREADY: everything needed is installed.")
         else:

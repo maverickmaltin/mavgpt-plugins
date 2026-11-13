@@ -1,0 +1,5 @@
+interface:
+  display_name: "Video Editor: clips"
+  short_description: "Turn a long video into short vertical clips"
+  brand_color: "#F5A623"
+  default_prompt: "Use $video-editor:clips to cut this long video into five short clips."

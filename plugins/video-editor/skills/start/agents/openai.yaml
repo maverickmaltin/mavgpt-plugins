@@ -1,0 +1,5 @@
+interface:
+  display_name: "Video Editor: start here"
+  short_description: "Build your own editing skill from your videos, then edit"
+  brand_color: "#F5A623"
+  default_prompt: "Use $video-editor:start to set me up to edit videos in my own style."
